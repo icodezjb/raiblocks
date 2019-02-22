@@ -1,35 +1,28 @@
 FROM ubuntu:16.04
 
-ENV BOOST_BASENAME=boost_1_66_0 \
-    BOOST_ROOT=/tmp/boost_install  \
-    BOOST_URL=https://sourceforge.net/projects/boost/files/boost/1.66.0/boost_1_66_0.tar.gz/download
+ARG NETWORK=live
 
-RUN apt-get update -qq && apt-get install -yqq \
-    build-essential \
-    cmake \
-    g++ \
-    wget && \
-    wget -qO ${BOOST_BASENAME}.tar.gz ${BOOST_URL} && \
-    tar xzf ${BOOST_BASENAME}.tar.gz && \
-    cd ${BOOST_BASENAME} && \
-    ./bootstrap.sh && \
-    ./b2 -d0 --prefix=${BOOST_ROOT} link=static install && \
-    rm -rf ${BOOST_BASENAME} && \
-    rm -f ${BOOST_BASENAME}.tar.gz && \
-    cd .. && \
-    mkdir /usr/share/raiblocks/
+ENV BOOST_ROOT=/tmp/boost_install
+
+ADD ci /tmp/ci
+ADD util /tmp/util
+
+RUN /tmp/util/build_prep/update-common && /tmp/util/build_prep/ubuntu/prep.sh
 
 ADD ./ /tmp/src
 
 RUN mkdir /tmp/build && \
     cd /tmp/build && \
-    cmake /tmp/src -DBOOST_ROOT=${BOOST_ROOT} && \
-    make rai_node && \
-    cd ..
+    cmake /tmp/src -DBOOST_ROOT=${BOOST_ROOT} -DACTIVE_NETWORK=nano_${NETWORK}_network && \
+    make nano_node && \
+    cd .. && \
+    echo ${NETWORK} > /etc/nano-network
 
 FROM ubuntu:16.04
-COPY --from=0 /tmp/build/rai_node /usr/bin
+COPY --from=0 /tmp/build/nano_node /usr/bin
+COPY --from=0 /etc/nano-network /etc
 COPY docker/node/entry.sh /entry.sh
-COPY docker/node/config.json /usr/share/raiblocks/config.json
+COPY docker/node/config /usr/share/nano/config
 RUN chmod +x /entry.sh
+RUN ln -s /usr/bin/nano_node /usr/bin/rai_node
 CMD ["/bin/bash",  "/entry.sh"]

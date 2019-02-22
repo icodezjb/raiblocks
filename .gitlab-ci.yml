@@ -1,4 +1,4 @@
-## Raiblocks CI config
+## Nano CI config
 
 image: ubuntu:xenial
 
@@ -21,25 +21,26 @@ variables:
     - build*/*.tar*
     - build*/*_test
     - csa_results
+    - build*/SHA1SUMS
 
   script:
-    - ./ci/build.sh
-
+    - ./ci/build-gitlab.sh
 
 Arch Linux:
   <<: *linux_cfg
   stage: build
-  image: pritunl/archlinux:latest
+  image: base/devel:latest
 
   before_script:
-    - pacman --noconfirm -Syu base-devel qt5-tools xorg-server-xvfb clang clang-tools-extra cmake boost boost-libs ninja lsb-release
+    - pacman --noconfirm -Syu qt5-tools xorg-server-xvfb clang clang-tools-extra cmake boost boost-libs ninja lsb-release
 
   script:
     - mkdir -p csa_results/
-    - scan-build -o csa_results/ ./ci/build.sh
+    - scan-build -o csa_results/ ./ci/build-gitlab.sh
 
 
-Ubuntu Linux Trusty:
+# Disabled, dependency on newer Qt than avail
+.Ubuntu Linux Trusty:
   <<: *linux_cfg
   stage: build
   image: ubuntu:trusty
@@ -49,8 +50,7 @@ Ubuntu Linux Trusty:
     FLAVOR: trusty
 
   before_script:
-    - ./ci/ubuntu_prep.sh
-    - ./ci/bootstrap_boost.sh
+    - ./util/build_prep/update-common && ./util/build_prep/ubuntu/prep.sh
 
 
 Ubuntu Linux Artful:
@@ -61,8 +61,7 @@ Ubuntu Linux Artful:
     FLAVOR: artful
 
   before_script:
-    - ./ci/ubuntu_prep.sh
-    - ./ci/bootstrap_boost.sh
+    - ./util/build_prep/update-common && ./util/build_prep/ubuntu/prep.sh
 
 Ubuntu Linux Xenial:
   <<: *linux_cfg
@@ -72,8 +71,40 @@ Ubuntu Linux Xenial:
     FLAVOR: xenial
 
   before_script:
-    - ./ci/ubuntu_prep.sh
-    - ./ci/bootstrap_boost.sh
+    - ./util/build_prep/update-common && ./util/build_prep/ubuntu/prep.sh
+
+Ubuntu Linux Xenial Beta:
+  <<: *linux_cfg
+  stage: build
+  image: ubuntu:xenial
+  variables:
+    FLAVOR: xenial
+    BETA: 1
+
+  before_script:
+    - ./util/build_prep/update-common && ./util/build_prep/ubuntu/prep.sh
+
+Xenial OPTIMIZED:
+  <<: *linux_cfg
+  stage: build
+  image: ubuntu:xenial
+  variables:
+    FLAVOR: xenial
+    SIMD: 1
+
+  before_script:
+    - ./util/build_prep/update-common && ./util/build_prep/ubuntu/prep.sh
+
+Artful OPTIMIZED:
+  <<: *linux_cfg
+  stage: build
+  image: ubuntu:artful
+  variables:
+    FLAVOR: artful
+    SIMD: 1
+
+  before_script:
+    - ./util/build_prep/update-common && ./util/build_prep/ubuntu/prep.sh
 
 
 # DISABLED for now
@@ -85,8 +116,7 @@ Ubuntu Linux Xenial:
     FLAVOR: zesty_asan
 
   before_script:
-    - ./ci/ubuntu_prep.sh
-    - ./ci/bootstrap_boost.sh
+    - ./util/build_prep/update-common && ./util/build_prep/ubuntu/prep.sh
 
 
 
@@ -99,7 +129,7 @@ Ubuntu Linux Xenial:
     FLAVOR: zesty_tsan
 
   before_script:
-    - ./ci/ubuntu_prep.sh
+    - ./util/build_prep/update-common && ./util/build_prep/ubuntu/prep.sh
 
 
 
@@ -115,7 +145,7 @@ Ubuntu Linux Xenial:
     - osx
 
   script:
-    - ./ci/build.sh
+    - ./ci/build-gitlab.sh
 
 # DISABLED for now
 .Alpine Linux:
@@ -128,5 +158,4 @@ Ubuntu Linux Xenial:
     - apk add --update alpine-sdk autoconf automake libtool clang-dev cmake ninja qt5-qtbase-dev qt5-qttools-dev boost-dev ttf-freefont xvfb
 
   script:
-    - ./ci/build.sh
-
+    - ./ci/build-gitlab.sh
